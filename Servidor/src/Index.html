@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autos y Comentarios SSE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Autos y Comentarios en Tiempo Real</h1>
+    <h2>Crear Auto</h2>
+    <h1>s</h1>
+    <form id="createAutoForm">
+        <label for="marca">Marca:</label>
+        <input type="text" id="marca" name="marca" required>
+        
+        <label for="modelo">Modelo:</label>
+        <input type="text" id="modelo" name="modelo" required>
+        
+        <label for="año">Año:</label>
+        <input type="text" id="año" name="año" required>
+        
+        <label for="tipodecarroceria">Tipo de Carrocería:</label>
+        <input type="text" id="tipodecarroceria" name="tipodecarroceria" required>
+        
+        <label for="color">Color:</label>
+        <input type="text" id="color" name="color" required>
+        
+        <label for="kilometraje">Kilometraje:</label>
+        <input type="number" id="kilometraje" name="kilometraje" required>
+        
+        <label for="precio">Precio:</label>
+        <input type="number" id="precio" name="precio" required>
+        
+        <label for="estado">Estado:</label>
+        <input type="text" id="estado" name="estado" required>
+        
+        <label for="cantidad">Cantidad:</label>
+        <input type="number" id="cantidad" name="cantidad" required>
+        
+        <label for="motor">Motor:</label>
+        <input type="text" id="motor" name="motor" required>
+        
+        <button type="submit">Crear Auto</button>
+    </form>
+    
+    <h2>Crear Comentario</h2>
+    <form id="createComentarioForm">
+        <label for="comentario">Comentario:</label>
+        <input type="text" id="comentario" name="comentario" required>
+        
+        <label for="fecha">Fecha:</label>
+        <input type="date" id="fecha" name="fecha" required>
+        
+        <label for="autoId">ID del Auto:</label>
+        <input type="number" id="autoId" name="autoId" required>
+        
+        <button type="submit">Crear Comentario</button>
+    </form>
+    
+    <h2>Autos</h2>
+    <ul id="autosList"></ul>
+    
+    <h2>Comentarios</h2>
+    <ul id="comentariosList"></ul>
+
+    <script>
+        const autosList = document.getElementById('autosList');
+        const comentariosList = document.getElementById('comentariosList');
+
+        function mostrarComentarios(autoId) {
+            fetch(`http://localhost:3000/api/Comentario/sse/${autoId}`)
+                .then(response => response.json())
+                .then(comentarios => {
+                    comentariosList.innerHTML = '';
+                    comentarios.forEach(comentario => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${comentario.comentario} (Fecha: ${comentario.fecha})`;
+                        comentariosList.appendChild(listItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al obtener comentarios:', error);
+                });
+        }
+
+        document.getElementById('createAutoForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            fetch('http://localhost:3000/api/Autos/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error al crear auto:', data.error);
+                } else {
+                    console.log('Auto creado:', data);
+                    obtenerAutos();
+                }
+            })
+            .catch(error => {
+                console.error('Error al crear auto:', error);
+            });
+        });
+
+        document.getElementById('createComentarioForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            fetch('http://localhost:3000/api/Comentario/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error al crear comentario:', data.error);
+                } else {
+                    console.log('Comentario creado:', data);
+                    mostrarComentarios(data.autoId);
+                }
+            })
+            .catch(error => {
+                console.error('Error al crear comentario:', error);
+            });
+        });
+
+        function obtenerAutos() {
+            fetch('http://localhost:3000/api/autos')
+                .then(response => response.json())
+                .then(autos => {
+                    autosList.innerHTML = '';
+                    autos.forEach(auto => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${auto.marca} ${auto.modelo} - ${auto.año}`;
+                        listItem.addEventListener('click', () => mostrarComentarios(auto.id));
+                        autosList.appendChild(listItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al obtener autos:', error);
+                });
+        }
+
+        obtenerAutos();
+    </script>
+</body>
+</html>
